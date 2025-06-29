@@ -1,20 +1,17 @@
 from fastapi import FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from scraper import extract_instagram_video
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.get("/")
+def root():
+    return {"message": "Snap Saver API (Pyppeteer) is running"}
 
 @app.get("/download")
-def download_instagram_video(url: str = Query(...)):
+async def download_instagram_video(url: str = Query(...)):
     try:
-        video_url = extract_instagram_video(url)
+        video_url = await extract_instagram_video(url)
         return {"success": True, "video_url": video_url}
     except Exception as e:
-        return {"success": False, "error": str(e)}    
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})

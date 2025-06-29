@@ -1,40 +1,20 @@
-import requests
-from bs4 import BeautifulSoup
+import asyncio
+from pyppeteer import launch
 
-def extract_instagram_video(url: str) -> str:
+async def extract_instagram_video(url: str) -> str:
+    browser = await launch(headless=True, args=["--no-sandbox"])
+    page = await browser.newPage()
     try:
-        session = requests.Session()
+        await page.goto("https://snapsave.app", timeout=60000)
+        await page.type('input[name="url"]', url)
+        await page.click('button[type="submit"]')
+        await page.waitForSelector("a.button.is-success", timeout=20000)
 
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Referer": "https://snapsave.app",
-            "Origin": "https://snapsave.app",
-        }
-
-        data = {
-            "url": url,
-            "lang": "en"
-        }
-
-        response = session.post(
-            "https://snapsave.app/action.php",
-            headers=headers,
-            data=data,
-            timeout=15
-        )
-        response.raise_for_status()
-
-        # طباعة المحتوى الأولي للصفحة HTML
-        print("🔵 HTML RESPONSE:\n", response.text[:1000])
-
-        soup = BeautifulSoup(response.text, "html.parser")
-        link = soup.find("a", attrs={"target": "_blank", "rel": "nofollow"})
-
-        if link and link.has_attr("href"):
-            return link["href"]
+        link = await page.querySelector("a.button.is-success")
+        if link:
+            href = await page.evaluate('(el) => el.href', link)
+            return href
         else:
             raise Exception("لم يتم العثور على رابط التحميل من الموقع")
-
-    except Exception as e:
-        print("🔴 خطأ أثناء استخراج الفيديو:", e)
-        raise Exception("حدث خطأ في استخراج الفيديو: " + str(e))
+    finally:
+        await browser.close()
