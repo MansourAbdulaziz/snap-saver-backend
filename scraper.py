@@ -5,32 +5,27 @@ async def extract_instagram_video(url: str) -> str:
     browser = await launch(headless=True, args=["--no-sandbox"])
     page = await browser.newPage()
     try:
+        # فتح موقع SnapSave
         await page.goto("https://snapsave.app", timeout=60000)
+
+        # لصق رابط إنستقرام
         await page.type('input[name="url"]', url)
+
+        # الضغط على زر التحميل
         await page.click('button[type="submit"]')
 
-        # ✅ انتظار الزر الذي يحتوي على "Download" باستخدام waitForFunction
-        await page.waitForFunction(
-            '''() => {
-                const btns = document.querySelectorAll("a.button");
-                return Array.from(btns).some(btn => btn.innerText.toLowerCase().includes("download"));
-            }''',
-            timeout=60000
-        )
+        # التقاط لقطة شاشة بعد الضغط (للتصحيح لاحقًا)
+        await page.screenshot({'path': 'debug.png'})
 
-        # ✅ العثور على الزر الذي يحتوي على "Download"
-        link = await page.querySelector('a.button.is-success')
+        # انتظار ظهور زر التحميل (حتى 40 ثانية)
+        await page.waitForSelector("a.button.is-success", timeout=40000)
+
+        # استخراج رابط التحميل
+        link = await page.querySelector("a.button.is-success")
         if link:
             href = await page.evaluate('(el) => el.href', link)
             return href
         else:
-            raise Exception("❌ لم يتم العثور على رابط التحميل في الصفحة.")
+            raise Exception("❌ لم يتم العثور على زر التحميل.")
     finally:
         await browser.close()
-
-# للتجربة المباشرة
-if __name__ == "__main__":
-    test_url = "https://www.instagram.com/reel/Cxyz123AbcD/"
-    print("⏳ استخراج الرابط...")
-    result = asyncio.get_event_loop().run_until_complete(extract_instagram_video(test_url))
-    print("✅ رابط التحميل:", result)
