@@ -1,28 +1,29 @@
+import asyncio
 from pyppeteer import launch
 
 async def extract_tiktok_video(url: str) -> str:
-    browser = await launch(headless=True, args=["--no-sandbox"])
+    browser = await launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
     page = await browser.newPage()
-    await page.goto("https://ssstik.io/en", timeout=60000)
-    
-    await page.waitForSelector("#main_page_text")
-    await page.type("#main_page_text", url)
-    await page.click("button[type='submit']")
+    await page.goto("https://snapsave.app/tiktok-downloader", timeout=60000)
+
+    await page.waitForSelector("#s_input", timeout=60000)
+    await page.type("#s_input", url)
+    await page.click("#submit")
 
     try:
         await page.waitForFunction(
             """() => {
-                const link = document.querySelector("a.without_watermark");
-                return link && link.href && link.href.startsWith('http');
+                const btn = document.querySelector('a.button.is-success');
+                return btn && btn.href && btn.href.startsWith('http');
             }""",
             timeout=60000
         )
     except Exception:
         await browser.close()
-        raise Exception("❌ لم يتم العثور على رابط TikTok داخل الصفحة")
+        raise Exception("❌ لم يتم العثور على رابط التحميل داخل الصفحة")
 
-    link = await page.querySelector("a.without_watermark")
-    download_url = await page.evaluate("(el) => el.href", link)
+    element = await page.querySelector("a.button.is-success")
+    download_url = await page.evaluate('(el) => el.href', element)
 
     await browser.close()
     return download_url
