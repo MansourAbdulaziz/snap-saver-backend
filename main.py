@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-# ✅ استيراد السكربتات من مجلد extractors
+# استيراد السكربتات من مجلد extractors
 from extractors.instagram import extract_instagram_video
 from extractors.tiktok import extract_tiktok_video
 from extractors.twitter import extract_twitter_video
@@ -11,6 +11,7 @@ from extractors.youtube import extract_youtube_video
 
 app = FastAPI()
 
+# السماح بالوصول من التطبيقات الخارجية (مثل Flutter)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# النموذج المستخدم في استقبال الطلبات
 class VideoRequest(BaseModel):
     url: str
 
@@ -37,7 +39,7 @@ async def download_video(request: VideoRequest):
         elif "youtube.com" in url or "youtu.be" in url:
             download_url = await extract_youtube_video(url)
         else:
-            return {"error": "❌ رابط غير مدعوم حالياً"}
+            return {"error": "❌ الرابط غير مدعوم حالياً"}
 
         return {"download_url": download_url}
 
