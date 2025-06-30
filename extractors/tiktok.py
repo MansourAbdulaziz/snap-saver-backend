@@ -1,16 +1,35 @@
+# extractors/instagram.py
+
 import asyncio
 from pyppeteer import launch
 
-async def extract_tiktok_video(url: str) -> str:
-    browser = await launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
+async def extract_instagram_video(url: str) -> str:
+    browser = await launch(
+        headless=True,
+        args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-blink-features=AutomationControlled"
+        ]
+    )
     page = await browser.newPage()
-    await page.goto("https://snapsave.app/tiktok-downloader", timeout=60000)
+    
+    # الانتقال لصفحة التحميل مع انتظار تحميل الـ DOM
+    await page.goto("https://snapsave.app/instagram-downloader", {
+        "timeout": 60000,
+        "waitUntil": "domcontentloaded"
+    })
 
+    # مهلة قصيرة للسماح بتحميل العناصر الديناميكية
+    await asyncio.sleep(3)
+
+    # الانتظار لعنصر الإدخال
     await page.waitForSelector("#s_input", timeout=60000)
     await page.type("#s_input", url)
     await page.click("#submit")
 
     try:
+        # استخدام waitForFunction للتحقق من الزر والرابط
         await page.waitForFunction(
             """() => {
                 const btn = document.querySelector('a.button.is-success');
@@ -22,6 +41,7 @@ async def extract_tiktok_video(url: str) -> str:
         await browser.close()
         raise Exception("❌ لم يتم العثور على رابط التحميل داخل الصفحة")
 
+    # استخراج الرابط
     element = await page.querySelector("a.button.is-success")
     download_url = await page.evaluate('(el) => el.href', element)
 
